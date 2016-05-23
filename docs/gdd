@@ -1,0 +1,16 @@
+Principal
+	- 3D
+	- 2Player (gegeneinander?coop)
+	- Puzzle
+	- Focus on strange physics
+	- Level
+
+Puzzle-Elements:
+	- portals
+		- resizing Entities
+		- gravity change
+	- Physic-Weapon (?)
+		- Teleport (may with mirrors)
+	- RedStone-Elements
+		- Switches
+	- MoveableBlocks

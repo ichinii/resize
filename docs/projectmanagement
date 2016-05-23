@@ -1,0 +1,7 @@
+buildtool
+	- bam
+
+libraries
+	- SFML (replace step by step)
+	- GLM
+	- GLEW (für OpenGL)
