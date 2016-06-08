@@ -1,3 +1,5 @@
+-- https://coronalabs.com/blog/2014/09/02/tutorial-printing-table-contents/
+
 function print_r ( t )  
     local print_r_cache={}
     local function sub_print_r(t,indent)

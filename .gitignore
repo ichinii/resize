@@ -1,4 +1,8 @@
+*.swp
+
+/.bam/
 /build/
 /local/
-*.swp
-/.bam/
+
+/lib/*/lib/
+/lib/*/include/

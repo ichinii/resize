@@ -2,6 +2,8 @@
 Import("lua/print_r.lua")
 Import("lua/util.lua")
 
+plattform = "linux";
+
 function ValidiateArg(arg, value)
 	if arg == "conf" then
 		if conf ~= "debug" and conf ~= "release" then
@@ -10,19 +12,26 @@ function ValidiateArg(arg, value)
 	elseif arg == "dir" then
 		
 	end
+	-- arch
 end
 
-function GenerateGlobalSettings(settings)
+function GenerateLibSettings(settings, name)
+	Import("lib/" .. name .. "/" .. name .. ".lua")
+	lib:configure()
+	lib:apply(settings)
+end
+
+function GenerateGenerelSettings(settings)
 	if conf == "debug" then
 		settings.debug = 1
+		settings.optimize = 0
 	elseif conf == "release" then
 		settings.debug = 0
 		settings.optimize = 1
 	end
-end
 
-function GenerateBuildSettings(settings)
-	GenerateGlobalSettings(settings)
+	settings.cc.flags:Add("-Wall")
+	settings.cc.flags_cxx:Add("--std=c++14")
 	settings.cc.includes:Add("src")
 	settings.cc.Output = function(settings, input)
 		input = input:gsub("^src/", "")
@@ -33,12 +42,15 @@ function GenerateBuildSettings(settings)
 	end
 end
 
+function GenerateClientSettings(settings)
+	GenerateLibSettings(settings, "freetype")
+	GenerateLibSettings(settings, "sfml")
+end
+
 function GenerateTestSettings(settings, dir)
-	GenerateGlobalSettings(settings)
-	settings.cc.includes:Add("src")
 	settings.cc.includes:Add(dir)
 	settings.cc.Output = function(settings, input)
-		return PathJoin(PathJoin(build_dir, "objs"), PathBase(input))
+		return PathJoin(PathJoin(build_dir, "obj"), PathBase(input))
 	end
 	settings.link.Output = function(settings, input)
 		return PathJoin(build_dir, "test_" .. PathBase(input))
@@ -62,43 +74,41 @@ build_dir = PathJoin(build_dir, conf)
 
 src_dir = "src"
 datasrc_dir = "datasrc"
-
+datadst_dir = "data"
 
 settings = NewSettings()
-GenerateBuildSettings(settings)
+GenerateGenerelSettings(settings)
 
 srcs = CollectRecursive(src_dir .. "/*.cpp")
-objs = Compile(settings, srcs)
+shared_srcs = TableDeepCopy(srcs)
+RemoveFromTableContaining(shared_srcs, {"/server/", "/client/"})
+client_srcs = TableDeepCopy(srcs)
+RemoveFromTableMissing(client_srcs, "/client/")
+server_srcs = TableDeepCopy(srcs)
+RemoveFromTableMissing(server_srcs, "/server/")
 
-PseudoTarget("client")
-do
-	local client_objs = TableDeepCopy(objs)
-	for k, v in pairs(client_objs) do
-		if(v:match("server/")) then
-			table.remove(client_objs, k)
-		end
-	end
-	local exe = Link(settings, "resize", client_objs)
-	AddDependency("client", exe)
-end
+shared_objs = Compile(settings, shared_srcs)
 
 PseudoTarget("server")
-do
-	local server_objs = TableDeepCopy(objs)
-	for k, v in pairs(server_objs) do
-		if(v:match("client/")) then
-			table.remove(server_objs, k)
-		end
-	end
-	local exe = Link(settings, "resize_srv", server_objs)
-	AddDependency("server", exe)
-end
+server_objs = Compile(settings, server_srcs)
+server_exe = Link(settings, "resize_srv", TableFlatten({shared_objs, server_objs}))
+AddDependency("server", server_exe)
+
+GenerateClientSettings(settings)
+
+PseudoTarget("client")
+client_objs = Compile(settings, client_srcs)
+client_exe = Link(settings, "resize", TableFlatten({shared_objs, client_objs}))
+AddDependency("client", client_exe)
+
+objs = TableFlatten({shared_objs, server_objs, client_objs})
 
 PseudoTarget("data")
 do
 	local data_files = CollectRecursive(datasrc_dir .. "/")
 	for i, file in pairs(data_files) do
-		local target = PathJoin(PathJoin(build_dir, "data"), file)
+		local target = file:gsub("^" .. datasrc_dir .. "/", "")
+		target = PathJoin(PathJoin(build_dir, datadst_dir), target)
 		AddJob(target, file .. " > " .. target , "cp " .. file .. " " .. target)
 		AddDependency(target, file)
 		AddDependency("data", target)
@@ -108,12 +118,12 @@ end
 PseudoTarget("test")
 do
 	local test_objs = TableDeepCopy(objs)
-	RemoveFromTable(test_objs, function(v)
-		return v:match("main.o")
-	end)
+	RemoveFromTableContaining(test_objs, "/main.o$")
 	local test_dirs = CollectDirs("test/*")
 	for i, dir in pairs(test_dirs) do
+		local settings = TableDeepCopy(settings)
 		GenerateTestSettings(settings, dir)
+
 		local this_test_srcs = CollectRecursive(dir .. "/*.cpp")
 		local this_test_objs = Compile(settings, this_test_srcs)
 		local this_test_exe = Link(settings, PathFilename(dir), TableFlatten({test_objs, this_test_objs}))
