@@ -21,7 +21,7 @@ function GenerateLibSettings(settings, name)
 	lib:apply(settings)
 end
 
-function GenerateGenerelSettings(settings)
+function GenerateGeneralSettings(settings)
 	if conf == "debug" then
 		settings.debug = 1
 		settings.optimize = 0
@@ -43,6 +43,7 @@ function GenerateGenerelSettings(settings)
 end
 
 function GenerateClientSettings(settings)
+	GenerateLibSettings(settings, "glew")
 	GenerateLibSettings(settings, "freetype")
 	GenerateLibSettings(settings, "sfml")
 end
@@ -77,7 +78,7 @@ datasrc_dir = "datasrc"
 datadst_dir = "data"
 
 settings = NewSettings()
-GenerateGenerelSettings(settings)
+GenerateGeneralSettings(settings)
 
 srcs = CollectRecursive(src_dir .. "/*.cpp")
 shared_srcs = TableDeepCopy(srcs)
