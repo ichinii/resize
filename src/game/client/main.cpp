@@ -59,7 +59,7 @@ int main(int argc, char** argv) {
 	settings.depthBits = 24;
 	settings.stencilBits = 8;
 	settings.antialiasingLevel = 0;
-	sf::Window window(sf::VideoMode(1600, 900), "Sample", sf::Style::Close, settings);
+	sf::Window window(sf::VideoMode(1280, 720), "Sample", sf::Style::Close, settings);
 
 	window.setActive();
 	glewInit();
@@ -98,13 +98,13 @@ int main(int argc, char** argv) {
 	glDeleteShader(fragmentShaderID);
 
 	glm::vec3 vertices[] {
-		{-1, -1, .2},
-		{ 1, -1, .2},
-		{ 0,  1, .0},
+		{-1,  -1,  1},
+		{ 1,  -1,  1},
+		{ 0, .6,  -1},
 
-		{-1,  1, .1},
-		{ 1, -1, .1},
-		{ 1,  1, .1},
+		{-1, -.6, -1},
+		{ 1, -.6, -1},
+		{ 0,   1,  1},
 	};
 
 	glm::vec3 colors[] {
@@ -152,14 +152,6 @@ int main(int argc, char** argv) {
 	glBindVertexArray(0);
 
 	while(window.isOpen()) {
-		sf::Event event;
-		while(window.pollEvent(event)) {
-			if(event.type == sf::Event::Closed 
-			|| (event.type == sf::Event::KeyPressed 
-			&& event.key.code == sf::Keyboard::Q))
-				window.close();
-		}
-
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		glBindVertexArray(vao);
@@ -167,7 +159,18 @@ int main(int argc, char** argv) {
 		glBindVertexArray(0);
 
 		window.display();
+
+		sf::Event event;
+		while(window.pollEvent(event)) {
+			if(event.type == sf::Event::Closed 
+			|| (event.type == sf::Event::KeyPressed 
+			&& event.key.code == sf::Keyboard::Q)) {
+				window.close();
+			}
+		}
 	}
+
+	printGLErrors();
 
 	return 0;
 }
